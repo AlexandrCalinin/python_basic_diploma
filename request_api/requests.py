@@ -9,7 +9,7 @@ headers = {
 }
 
 
-def find_city(city_name):
+def find_city(city_name: str) -> list:
     url = "https://hotels4.p.rapidapi.com/locations/v2/search"
     querystring = {"query": city_name, "locale": "ru_RU", "currency": "RUB"}
     response = requests.request("GET", url=url, headers=headers, params=querystring)
