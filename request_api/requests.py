@@ -1,5 +1,4 @@
 import requests
-import re
 import json
 from config_data.config import RAPID_API_KEY
 
@@ -10,15 +9,12 @@ headers = {
 
 
 def find_city(city_name: str) -> list:
-    url = "https://hotels4.p.rapidapi.com/locations/v2/search"
-    querystring = {"query": city_name, "locale": "ru_RU", "currency": "RUB"}
-    response = requests.request("GET", url=url, headers=headers, params=querystring)
-    pattern = r'(?<="CITY_GROUP",)_+?[\]]'
-    find = re.search(pattern, response.text)
-    cities = list()
+    url = "https://hotels4.p.rapidapi.com/locations/v3/search"
+    querystring = {"q": city_name, "locale": "ru_RU", "langid": "1033", "siteid": "300000001"}
+    response = requests.get(url=url, headers=headers, params=querystring)
+    data = json.loads(response.text)
 
-    if find:
-        suggestions = json.loads(f'{{{find[0]}}}')
-        for id in suggestions['entities']:
-            cities.append({'city_name': id['name'], 'destination_id': id['destinationId']})
+    cities = list()
+    for indexes in data['sr']:
+        cities.append(indexes['regionNames']['fullName'])
     return cities
