@@ -15,6 +15,9 @@ def find_city(city_name: str) -> list:
     data = json.loads(response.text)
 
     cities = list()
-    for indexes in data['sr']:
-        cities.append(indexes['regionNames']['fullName'])
-    return cities
+    city_id = list()
+    for names in data['sr']:
+        cities.append(names['regionNames']['fullName'])
+        city_id.append(names['essId']['sourceId'])
+
+    return list(zip(cities, city_id))
