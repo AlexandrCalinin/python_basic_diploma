@@ -1,1 +1,1 @@
-from . import keyboard_for_photos, keyboard_for_city
+from . import keyboard_for_city
