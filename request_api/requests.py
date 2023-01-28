@@ -64,6 +64,5 @@ def get_list(city_id: str, check_in_day: int, check_in_month: int, check_in_year
     data = json.loads(response.text)
     hotel_names = list()
     for values in data['data']['propertySearch']['properties']:
-        name = data['data']['propertySearch']['properties'][f'{values}']['names'].values()
-        hotel_names.append(name)
+        hotel_names.append(values['name'])
     return hotel_names

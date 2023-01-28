@@ -181,12 +181,16 @@ def get_hotel_details(message: Message) -> None:
     bot.set_state(message.from_user.id, MyStates.print_confirmation, message.chat.id)
     with bot.retrieve_data(message.from_user.id, message.chat.id) as data:
         city_id = data['city_id']
-        check_in_date = data['arrival_date']
-        check_in_date.split('-')
-        check_out_date = data['departure_date']
-        check_out_date.split('-')
-        result = requests.get_list(city_id=str(city_id), check_in_day=int(check_in_date[2]),
-                                   check_in_month=int(check_in_date[1]), check_in_year=int(check_in_date[0]),
-                                   check_out_day=int(check_out_date[2]),
-                                   check_out_month=int(check_out_date[1]), check_out_year=int(check_out_date[0]))
-    print(result)
+        arrival_date = data['arrival_date']
+        check_in_date = arrival_date.split('-')
+        departure_date = data['departure_date']
+        check_out_date = departure_date.split('-')
+        req_result = requests.get_list(city_id=str(city_id), check_in_day=int(check_in_date[2]),
+                                       check_in_month=int(check_in_date[1]), check_in_year=int(check_in_date[0]),
+                                       check_out_day=int(check_out_date[2]),
+                                       check_out_month=int(check_out_date[1]), check_out_year=int(check_out_date[0]))
+
+        hotel_names = list()
+        for indexes in range(0, int(data['hotels_quantity'])):
+            hotel_names.append(req_result[indexes])
+        print(hotel_names)
