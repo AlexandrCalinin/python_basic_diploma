@@ -81,17 +81,17 @@ def callback_city(call):
             data['city_id'] = tuple_of_id[4]
 
     bot.send_message(call.message.chat.id, 'Укажите количество отелей, которое необходимо '
-                                           'вывести в результате (максимум 5): ')
+                                           'вывести в результате (максимум 10): ')
 
 
 @bot.message_handler(state=MyStates.city)
 def to_send_photos(message: Message) -> None:
     """Спрашиваем нужны ли пользователю фотографии"""
-    if message.text.isdigit() and int(message.text) < 6:
+    if message.text.isdigit() and int(message.text) < 11:
         bot.set_state(message.from_user.id, MyStates.number_of_hotels, message.chat.id)
         with bot.retrieve_data(message.from_user.id, message.chat.id) as data:
             data['hotels_quantity'] = str(message.text)
-        bot.send_message(message.chat.id, 'Хотите вывести фотографии? (Да/Нет).')
+        bot.send_message(message.chat.id, 'Хотите вывести фотографии? (Да/Варианта ответа "нет" нет).')
     else:
         bot.send_message(message.chat.id, 'Ошибка! Одно из условий нарушено. Попробуйте еще раз!')
         to_send_photos(message=message)
@@ -104,7 +104,7 @@ def get_photos_quantity(message: Message) -> None:
         bot.set_state(message.from_user.id, MyStates.send_photos, message.chat.id)
         with bot.retrieve_data(message.from_user.id, message.chat.id) as data:
             data['send_photos'] = str(message.text)
-        bot.send_message(message.chat.id, 'Введите количество необходимых фотографий: ')
+        bot.send_message(message.chat.id, 'Введите количество необходимых фотографий (максимум 10): ')
     else:
         bot.send_message(message.chat.id, 'Что-то пошло не так, выберите один из двух вариантов ответа! (Да/Нет)')
         get_photos_quantity(message=message)
@@ -176,8 +176,8 @@ def print_result(message: Message) -> None:
 
 
 @bot.message_handler(state=MyStates.departure_confirmation)
-def get_hotel_details(message: Message) -> None:
-    """Находим заданное кол-во отелей и фотографии с их описанием"""
+def withdraw_hotels(message: Message) -> None:
+    """Выводим заданное кол-во отелей и фотографии с их описанием"""
     bot.set_state(message.from_user.id, MyStates.print_confirmation, message.chat.id)
     with bot.retrieve_data(message.from_user.id, message.chat.id) as data:
         city_id = data['city_id']
@@ -185,12 +185,21 @@ def get_hotel_details(message: Message) -> None:
         check_in_date = arrival_date.split('-')
         departure_date = data['departure_date']
         check_out_date = departure_date.split('-')
-        req_result = requests.get_list(city_id=str(city_id), check_in_day=int(check_in_date[2]),
-                                       check_in_month=int(check_in_date[1]), check_in_year=int(check_in_date[0]),
-                                       check_out_day=int(check_out_date[2]),
-                                       check_out_month=int(check_out_date[1]), check_out_year=int(check_out_date[0]))
+        req_result = requests.get_hotel_name_list(city_id=str(city_id), check_in_day=int(check_in_date[2]),
+                                                  check_in_month=int(check_in_date[1]),
+                                                  check_in_year=int(check_in_date[0]),
+                                                  check_out_day=int(check_out_date[2]),
+                                                  check_out_month=int(check_out_date[1]),
+                                                  check_out_year=int(check_out_date[0]))
 
+        tuple_of_hotel_names, tuple_of_hotel_id = zip(*req_result)
         hotel_names = list()
-        for indexes in range(0, int(data['hotels_quantity'])):
-            hotel_names.append(req_result[indexes])
-        print(hotel_names)
+        hotel_id = list()
+        for indexes in range(1, int(data['hotels_quantity']) + 1):
+            hotel_names.append(tuple_of_hotel_names[indexes])
+            hotel_id.append(tuple_of_hotel_id[indexes])
+
+        for index in range(1, int(data['hotels_quantity']) + 1):
+            image_urls = requests.get_hotel_photos(hotel_id=hotel_id[index - 1],
+                                                   photos_quantity=int(data['hotel_photo_quantity']))
+            print(image_urls)

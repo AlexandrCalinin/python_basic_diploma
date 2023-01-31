@@ -22,7 +22,7 @@ def find_city(city_name: str) -> list:
     return list(zip(cities, city_id))
 
 
-def get_list(city_id: str, check_in_day: int, check_in_month: int, check_in_year: int,
+def get_hotel_name_list(city_id: str, check_in_day: int, check_in_month: int, check_in_year: int,
              check_out_day: int, check_out_month: int, check_out_year: int) -> list:
     url = "https://hotels4.p.rapidapi.com/properties/v2/list"
     payload = {
@@ -51,7 +51,7 @@ def get_list(city_id: str, check_in_day: int, check_in_month: int, check_in_year
         "resultsSize": 200,
         "sort": "PRICE_LOW_TO_HIGH",
         "filters": {"price": {
-            "max": 5000,
+            "max": 10000,
             "min": 100
         }}
     }
@@ -63,6 +63,34 @@ def get_list(city_id: str, check_in_day: int, check_in_month: int, check_in_year
     response = requests.request("POST", url, json=payload, headers=headers)
     data = json.loads(response.text)
     hotel_names = list()
+    hotel_id = list()
     for values in data['data']['propertySearch']['properties']:
         hotel_names.append(values['name'])
-    return hotel_names
+        hotel_id.append(values['id'])
+    return list(zip(hotel_names, hotel_id))
+
+
+def get_hotel_photos(hotel_id: str, photos_quantity: int) -> list[str]:
+    """Находим фотографии по id отелей и возвращаем ссылки на img"""
+    url = "https://hotels4.p.rapidapi.com/properties/v2/detail"
+
+    payload = {
+        "currency": "RUB",
+        "eapid": 1,
+        "locale": "ru_RU",
+        "siteId": 300000001,
+        "propertyId": hotel_id
+    }
+    headers = {
+        "content-type": "application/json",
+        "X-RapidAPI-Key": RAPID_API_KEY,
+        "X-RapidAPI-Host": "hotels4.p.rapidapi.com"
+    }
+
+    response = requests.request("POST", url, json=payload, headers=headers)
+    data = json.loads(response.text)
+    image_list: list[str] = list()
+
+    for images in data['data']['propertyInfo']['propertyGallery']['images'][0:photos_quantity]:
+        image_list.append(images['image']['url'])
+    return image_list
