@@ -17,4 +17,3 @@ class MyStates(StatesGroup):
     arrival_confirmation: str = State()
     departure_date: str = State()
     departure_confirmation: str = State()
-    print_confirmation: str = State()

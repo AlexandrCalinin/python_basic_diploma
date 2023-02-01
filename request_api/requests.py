@@ -23,7 +23,7 @@ def find_city(city_name: str) -> list:
 
 
 def get_hotel_name_list(city_id: str, check_in_day: int, check_in_month: int, check_in_year: int,
-             check_out_day: int, check_out_month: int, check_out_year: int) -> list:
+                        check_out_day: int, check_out_month: int, check_out_year: int) -> list:
     url = "https://hotels4.p.rapidapi.com/properties/v2/list"
     payload = {
         "currency": "RUB",
