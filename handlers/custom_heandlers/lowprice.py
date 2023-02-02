@@ -3,7 +3,7 @@ from telebot.types import InputMediaPhoto
 from states.state import MyStates
 from telebot.types import Message
 from loader import bot
-from keyboards.inline import keyboard_for_city
+from keyboards.inline import keyboard_for_city, keyboard_for_photos
 from request_api import requests
 from telegram_bot_calendar import DetailedTelegramCalendar, LSTEP
 
@@ -93,31 +93,37 @@ def to_send_photos(message: Message) -> None:
         bot.set_state(message.from_user.id, MyStates.number_of_hotels, message.chat.id)
         with bot.retrieve_data(message.from_user.id, message.chat.id) as data:
             data['hotels_quantity'] = str(message.text)
-        bot.send_message(message.chat.id, 'Хотите вывести фотографии? (Да/Варианта ответа "нет" нет).')
+        bot.send_message(message.chat.id, 'Хотите вывести фотографии?', reply_markup=keyboard_for_photos.keyboard())
     else:
         bot.send_message(message.chat.id, 'Ошибка! Одно из условий нарушено. Попробуйте еще раз!')
         to_send_photos(message=message)
 
 
-@bot.message_handler(state=MyStates.number_of_hotels)
-def get_photos_quantity(message: Message) -> None:
+@bot.callback_query_handler(func=lambda call: MyStates.number_of_hotel_photos)
+def callback_get_photos_quantity(call) -> None:
     """Запрашиваем у пользователя количество фотографий отелей, которое нужно найти"""
-    if str(message.text).title() == 'Да' or str(message.text).title() == 'Нет':
-        bot.set_state(message.from_user.id, MyStates.send_photos, message.chat.id)
-        with bot.retrieve_data(message.from_user.id, message.chat.id) as data:
-            data['send_photos'] = str(message.text)
-        bot.send_message(message.chat.id, 'Введите количество необходимых фотографий (максимум 10): ')
-    else:
-        bot.send_message(message.chat.id, 'Что-то пошло не так, выберите один из двух вариантов ответа! (Да/Нет)')
-        get_photos_quantity(message=message)
+    if call.data == 'Да':
+        with bot.retrieve_data(call.from_user.id, call.message.chat.id) as data:
+            bot.set_state(call.from_user.id, MyStates.send_photos, call.message.chat.id)
+            data['send_photos'] = 'Да'
+            bot.send_message(call.message.chat.id, 'Введите количество необходимых фотографий (максимум 10): ')
+    elif call.data == 'Нет':
+        with bot.retrieve_data(call.from_user.id, call.message.chat.id) as data:
+            bot.set_state(call.from_user.id, MyStates.send_photos, call.message.chat.id)
+            data['send_photos'] = 'Нет'
+            bot.send_message(call.message.chat.id, 'Нет так нет, идем дальше!')
 
 
 @bot.message_handler(state=MyStates.send_photos)
 def get_arrival_date(message: Message) -> None:
     """Используя модуль календаря устанавливаем дату въезда"""
-    bot.set_state(message.from_user.id, MyStates.number_of_hotel_photos, message.chat.id)
     with bot.retrieve_data(message.from_user.id, message.chat.id) as data:
-        data['hotel_photo_quantity'] = str(message.text)
+        if data['send_photos'] == 'Да':
+            bot.set_state(message.from_user.id, MyStates.number_of_hotel_photos, message.chat.id)
+            data['hotel_photo_quantity'] = str(message.text)
+        if data['send_photos'] == 'Нет':
+            bot.set_state(MyStates.number_of_hotel_photos, state='0')
+            data['hotel_photo_quantity'] = str(message.text)
     calendar, step = DetailedTelegramCalendar(calendar_id=0).build()
     bot.send_message(message.chat.id, f"Select {LSTEP[step]}", reply_markup=calendar)
 
