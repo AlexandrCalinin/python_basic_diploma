@@ -1,6 +1,6 @@
 from datetime import date
 from states.state import MyStates
-from telebot.types import Message
+from telebot.types import Message, CallbackQuery
 from loader import bot
 from keyboards.inline import keyboard_for_city, keyboard_for_photos
 from request_api import requests
@@ -36,7 +36,7 @@ def get_city(message: Message) -> None:
 
 
 @bot.callback_query_handler(func=lambda call: True, state=MyStates.city)
-def callback_city(call):
+def callback_city(call: CallbackQuery):
     """ Получаем ответ пользователя, путем нажатия на inline-кнопки, записываем город и его id"""
     list_of_cities = requests.find_city(data1['city'])
     tuple_of_names, tuple_of_id = zip(*list_of_cities)
@@ -94,7 +94,7 @@ def to_send_photos(message: Message) -> None:
 
 
 @bot.callback_query_handler(func=lambda call: MyStates.number_of_hotel_photos)
-def callback_get_photos_quantity(call) -> None:
+def callback_get_photos_quantity(call: CallbackQuery) -> None:
     """Запрашиваем у пользователя количество фотографий отелей, которое нужно найти"""
     if call.data == 'Да':
         with bot.retrieve_data(call.from_user.id, call.message.chat.id) as data:
@@ -102,61 +102,60 @@ def callback_get_photos_quantity(call) -> None:
             data['send_photos'] = 'Да'
             bot.send_message(call.message.chat.id, 'Введите количество необходимых фотографий (максимум 10): ')
     elif call.data == 'Нет':
-        with bot.retrieve_data(call.from_user.id, call.message.chat.id) as data:
-            bot.set_state(call.from_user.id, MyStates.send_photos, call.message.chat.id)
-            data['send_photos'] = 'Нет'
+        calendar, step = DetailedTelegramCalendar(calendar_id=1).build()
+        bot.send_message(call.message.chat.id, f"Select {LSTEP[step]}", reply_markup=calendar)
 
 
 @bot.message_handler(state=MyStates.send_photos)
 def get_arrival_date(message: Message) -> None:
     """Используя модуль календаря устанавливаем дату въезда"""
     with bot.retrieve_data(message.from_user.id, message.chat.id) as data:
-        if data['send_photos'] == 'Да':
-            bot.set_state(message.from_user.id, MyStates.number_of_hotel_photos, message.chat.id)
-            data['hotel_photo_quantity'] = str(message.text)
-        elif data['send_photos'] == 'Нет':
-            bot.set_state(MyStates.number_of_hotel_photos, state='0')
-            data['hotel_photo_quantity'] = str(message.text)
-    calendar, step = DetailedTelegramCalendar(calendar_id=0).build()
-    bot.send_message(message.chat.id, f"Select {LSTEP[step]}", reply_markup=calendar)
-
-
-@bot.callback_query_handler(func=DetailedTelegramCalendar.func(calendar_id=0))
-def callback_arrival_date(call):
-    result, key, step = DetailedTelegramCalendar(calendar_id=0, locale='ru', min_date=date.today()).process(call.data)
-    if not result and key:
-        bot.edit_message_text(f"Select {LSTEP[step]}",
-                              call.message.chat.id,
-                              call.message.message_id,
-                              reply_markup=key)
-    elif result:
-        bot.set_state(MyStates.arrival_date, state=str(result))
-        with bot.retrieve_data(call.from_user.id, call.message.chat.id) as data:
-            data['arrival_date'] = str(result)
-        bot.send_message(call.message.chat.id, f"Вы выбрали: {result}")
-
-
-@bot.message_handler(state=MyStates.arrival_date)
-def get_departure_date(message: Message) -> None:
-    """Используя модуль календаря устанавливаем дату выезда"""
-    # bot.set_state(message.from_user.id, MyStates.arrival_confirmation, message.chat.id)
-    calendar, step = DetailedTelegramCalendar(calendar_id=1).build()
-    bot.send_message(message.chat.id, f"Select {LSTEP[step]}", reply_markup=calendar)
+        bot.set_state(message.from_user.id, MyStates.number_of_hotel_photos, message.chat.id)
+        data['hotel_photo_quantity'] = str(message.text)
+        calendar, step = DetailedTelegramCalendar(calendar_id=1).build()
+        bot.send_message(message.chat.id, f"Select {LSTEP[step]}", reply_markup=calendar)
 
 
 @bot.callback_query_handler(func=DetailedTelegramCalendar.func(calendar_id=1))
-def callback_departure_date(call):
-    result, key, step = DetailedTelegramCalendar(calendar_id=1, locale='ru', min_date=date.today()).process(call.data)
-    if not result and key:
-        bot.edit_message_text(f"Select {LSTEP[step]}",
-                              call.message.chat.id,
-                              call.message.message_id,
-                              reply_markup=key)
-    elif result:
+def callback_arrival_date(call: CallbackQuery):
+    print(1)
+    try:
+        bot.set_state(call.from_user.id, MyStates.arrival_date, call.message.chat.id)
+        result, key, step = DetailedTelegramCalendar(calendar_id=1, locale='ru',
+                                                     min_date=date.today()).process(call.data)
+        if not result and key:
+            bot.edit_message_text(f"Select {LSTEP[step]}",
+                                  call.message.chat.id,
+                                  call.message.message_id,
+                                  reply_markup=key)
+        elif result:
+            with bot.retrieve_data(call.from_user.id, call.message.chat.id) as data:
+                data['arrival_date'] = str(result)
+            bot.send_message(call.message.chat.id, f"Вы выбрали: {result}")
+    except Exception as exc:
+        print(exc)
+    finally:
+        calendar, step = DetailedTelegramCalendar(calendar_id=2).build()
+        bot.send_message(call.message.chat.id, f"Select {LSTEP[step]}", reply_markup=calendar)
+
+
+@bot.callback_query_handler(func=DetailedTelegramCalendar.func(calendar_id=2))
+def callback_departure_date(call: CallbackQuery):
+    try:
         bot.set_state(call.from_user.id, MyStates.departure_date, call.message.chat.id)
-        with bot.retrieve_data(call.from_user.id, call.message.chat.id) as data:
-            data['departure_date'] = str(result)
-        bot.send_message(call.message.chat.id, f"Вы выбрали: {result}")
+        result, key, step = DetailedTelegramCalendar(calendar_id=2, locale='ru',
+                                                     min_date=date.today()).process(call.data)
+        if not result and key:
+            bot.edit_message_text(f"Select {LSTEP[step]}",
+                                  call.message.chat.id,
+                                  call.message.message_id,
+                                  reply_markup=key)
+        elif result:
+            with bot.retrieve_data(call.from_user.id, call.message.chat.id) as data:
+                data['departure_date'] = str(result)
+            bot.send_message(call.message.chat.id, f"Вы выбрали: {result}")
+    except Exception as exc:
+        print(exc)
 
 
 @bot.message_handler(state=MyStates.departure_date)
