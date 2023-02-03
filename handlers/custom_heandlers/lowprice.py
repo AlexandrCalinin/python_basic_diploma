@@ -1,5 +1,4 @@
 from datetime import date
-from telebot.types import InputMediaPhoto
 from states.state import MyStates
 from telebot.types import Message
 from loader import bot
@@ -43,7 +42,6 @@ def callback_city(call):
     tuple_of_names, tuple_of_id = zip(*list_of_cities)
 
     if call.data == 'btn1':
-        bot.send_message(call.message.chat.id, 'Вы выбрали 1 кнопку')
         bot.set_state(MyStates.concretize_city, state=tuple_of_names[0])
         bot.set_state(MyStates.city_id, state=tuple_of_id[0])
         with bot.retrieve_data(call.from_user.id, call.message.chat.id) as data:
@@ -51,7 +49,6 @@ def callback_city(call):
             data['city_id'] = tuple_of_id[0]
 
     elif call.data == 'btn2':
-        bot.send_message(call.message.chat.id, 'Вы выбрали 2 кнопку')
         bot.set_state(MyStates.concretize_city, state=tuple_of_names[1])
         bot.set_state(MyStates.city_id, state=tuple_of_id[1])
         with bot.retrieve_data(call.from_user.id, call.message.chat.id) as data:
@@ -59,7 +56,6 @@ def callback_city(call):
             data['city_id'] = tuple_of_id[1]
 
     elif call.data == 'btn3':
-        bot.send_message(call.message.chat.id, 'Вы выбрали 3 кнопку')
         bot.set_state(MyStates.concretize_city, state=tuple_of_names[2])
         bot.set_state(MyStates.city_id, state=tuple_of_id[2])
         with bot.retrieve_data(call.from_user.id, call.message.chat.id) as data:
@@ -67,7 +63,6 @@ def callback_city(call):
             data['city_id'] = tuple_of_id[2]
 
     elif call.data == 'btn4':
-        bot.send_message(call.message.chat.id, 'Вы выбрали 4 кнопку')
         bot.set_state(MyStates.concretize_city, state=tuple_of_names[3])
         bot.set_state(MyStates.city_id, state=tuple_of_id[3])
         with bot.retrieve_data(call.from_user.id, call.message.chat.id) as data:
@@ -75,7 +70,6 @@ def callback_city(call):
             data['city_id'] = tuple_of_id[3]
 
     elif call.data == 'btn5':
-        bot.send_message(call.message.chat.id, 'Вы выбрали 5 кнопку')
         bot.set_state(MyStates.concretize_city, state=tuple_of_names[4])
         bot.set_state(MyStates.city_id, state=tuple_of_id[4])
         with bot.retrieve_data(call.from_user.id, call.message.chat.id) as data:
@@ -111,7 +105,6 @@ def callback_get_photos_quantity(call) -> None:
         with bot.retrieve_data(call.from_user.id, call.message.chat.id) as data:
             bot.set_state(call.from_user.id, MyStates.send_photos, call.message.chat.id)
             data['send_photos'] = 'Нет'
-            bot.send_message(call.message.chat.id, 'Нет так нет, идем дальше!')
 
 
 @bot.message_handler(state=MyStates.send_photos)
@@ -121,7 +114,7 @@ def get_arrival_date(message: Message) -> None:
         if data['send_photos'] == 'Да':
             bot.set_state(message.from_user.id, MyStates.number_of_hotel_photos, message.chat.id)
             data['hotel_photo_quantity'] = str(message.text)
-        if data['send_photos'] == 'Нет':
+        elif data['send_photos'] == 'Нет':
             bot.set_state(MyStates.number_of_hotel_photos, state='0')
             data['hotel_photo_quantity'] = str(message.text)
     calendar, step = DetailedTelegramCalendar(calendar_id=0).build()
