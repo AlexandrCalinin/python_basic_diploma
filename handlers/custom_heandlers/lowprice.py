@@ -149,23 +149,16 @@ def callback_arrival_date(call: CallbackQuery):
                                   call.message.message_id,
                                   reply_markup=key)
         elif result:
+            bot.set_state(call.from_user.id, MyStates.checkin_day, call.message.chat.id)
             bot.edit_message_text(f"Выбранная дата заезда: {result.strftime('%d-%m-%Y')}",
                                   call.message.chat.id,
                                   call.message.message_id)
             with bot.retrieve_data(call.from_user.id, call.message.chat.id) as data:
                 data['arrival_date'] = result.strftime('%d-%m-%Y')
+            calendar, step = DetailedTelegramCalendar(calendar_id=2).build()
+            bot.send_message(call.message.chat.id, f"Select {LSTEP[step]}", reply_markup=calendar)
     except Exception as exc:
         print(exc)
-
-
-@logger.catch
-@bot.message_handler(state=MyStates.arrival_date)
-def departure_day(message: Message) -> None:
-    """Используя модуль календаря, устанавливаем дату выезда"""
-    logger.info(f'Пользователь {message.from_user.id} перешел в функцию {departure_day.__name__}')
-    bot.set_state(message.from_user.id, MyStates.checkin_day, message.chat.id)
-    calendar, step = DetailedTelegramCalendar(calendar_id=2).build()
-    bot.send_message(message.chat.id, f"Select {LSTEP[step]}", reply_markup=calendar)
 
 
 @logger.catch
@@ -182,12 +175,12 @@ def callback_departure_date(call: CallbackQuery):
                                   call.message.message_id,
                                   reply_markup=key)
         elif result:
-            bot.set_state(call.from_user.id, MyStates.checkout_day, call.message.chat.id)
-            bot.edit_message_text(f"Выбранная дата заезда: {result.strftime('%d-%m-%Y')}",
+            bot.edit_message_text(f"Выбранная дата выезда: {result.strftime('%d-%m-%Y')}",
                                   call.message.chat.id,
                                   call.message.message_id)
             with bot.retrieve_data(call.from_user.id, call.message.chat.id) as data:
                 data['departure_date'] = result.strftime('%d-%m-%Y')
+            bot.set_state(call.from_user.id, MyStates.checkout_day, call.message.chat.id)
     except Exception as exc:
         print(exc)
 
@@ -203,12 +196,12 @@ def withdraw_hotels(message: Message) -> None:
         check_in_date = arrival_date.split('-')
         departure_date = data['departure_date']
         check_out_date = departure_date.split('-')
-        req_result = requests.get_hotel_name_list(city_id=str(city_id), check_in_day=int(check_in_date[2]),
+        req_result = requests.get_hotel_name_list(city_id=str(city_id), check_in_day=int(check_in_date[0]),
                                                   check_in_month=int(check_in_date[1]),
-                                                  check_in_year=int(check_in_date[0]),
-                                                  check_out_day=int(check_out_date[2]),
+                                                  check_in_year=int(check_in_date[2]),
+                                                  check_out_day=int(check_out_date[0]),
                                                   check_out_month=int(check_out_date[1]),
-                                                  check_out_year=int(check_out_date[0]))
+                                                  check_out_year=int(check_out_date[2]))
 
         tuple_of_hotel_names, tuple_of_hotel_id = zip(*req_result)
         hotel_names = list()
