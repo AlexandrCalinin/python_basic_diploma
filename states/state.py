@@ -8,7 +8,6 @@ state_storage = StateMemoryStorage()
 class MyStates(StatesGroup):
     command = State()
     city = State()
-    concretize_city = State()
     city_id = State()
     number_of_hotels = State()
     send_photos = State()

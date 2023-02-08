@@ -3,7 +3,13 @@ import json
 from config_data.config import RAPID_API_KEY
 
 
-def find_city(city_name: str) -> list:
+def find_city(city_name: str) -> dict:
+    """
+    Функция поиска возможных вариантов локаций
+
+    :param city_name: Название города для API запроса;
+    :return: Словарь {точное название: id}
+    """
     headers = {
         "X-RapidAPI-Key": RAPID_API_KEY,
         "X-RapidAPI-Host": "hotels4.p.rapidapi.com"
@@ -13,17 +19,27 @@ def find_city(city_name: str) -> list:
     response = requests.get(url=url, headers=headers, params=querystring)
     data = json.loads(response.text)
 
-    cities = list()
-    city_id = list()
-    for names in data['sr']:
-        cities.append(names['regionNames']['fullName'])
-        city_id.append(names['essId']['sourceId'])
+    locations_dict = dict()
+    for names in data['sr'][0:5]:
+        locations_dict[str(names['regionNames']['fullName'])] = names['essId']['sourceId']
 
-    return list(zip(cities, city_id))
+    return locations_dict
 
 
 def get_hotel_name_list(city_id: str, check_in_day: int, check_in_month: int, check_in_year: int,
                         check_out_day: int, check_out_month: int, check_out_year: int) -> list:
+    """
+    Функция поиска названий отелей и их Id
+
+    :param city_id: Id города
+    :param check_in_day: День въезда
+    :param check_in_month: Месяц въезда
+    :param check_in_year: Год въезда
+    :param check_out_day: День выезда
+    :param check_out_month: Месяц выезда
+    :param check_out_year: Год выезда
+    :return: Список [название отеля, его Id]
+    """
     url = "https://hotels4.p.rapidapi.com/properties/v2/list"
     payload = {
         "currency": "RUB",
@@ -71,7 +87,13 @@ def get_hotel_name_list(city_id: str, check_in_day: int, check_in_month: int, ch
 
 
 def get_hotel_photos(hotel_id: str, photos_quantity: int) -> list[str]:
-    """Находим фотографии по id отелей и возвращаем ссылки на img"""
+    """
+    Функция поиска фотографий отелей по Id отелей
+
+    :param hotel_id: Id отеля для поиска фотографий этого отеля
+    :param photos_quantity: Количество нужных фотографий
+    :return: Список ссылок на фотографии
+    """
     url = "https://hotels4.p.rapidapi.com/properties/v2/detail"
 
     payload = {

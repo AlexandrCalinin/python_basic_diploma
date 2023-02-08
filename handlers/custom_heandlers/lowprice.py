@@ -7,13 +7,15 @@ from request_api import requests
 from telegram_bot_calendar import DetailedTelegramCalendar, LSTEP
 from loguru import logger
 
-data1 = dict()
-
 
 @logger.catch
 @bot.message_handler(commands=['lowprice'])
-def command(message):
-    """Начинаем работать с lowprice, запрашиваем название города"""
+def command(message: Message):
+    """
+    Начинаем работать с lowprice, запрашиваем название города
+
+    :param message: Объект Message
+    """
     try:
         bot.delete_state(message.from_user.id, message.chat.id)
         bot.set_state(message.from_user.id, MyStates.command, message.chat.id)
@@ -29,15 +31,18 @@ def command(message):
 @logger.catch
 @bot.message_handler(state=MyStates.command)
 def get_city(message: Message) -> None:
-    """Запрашиваем у пользователя город, к котором нужно искать отели"""
+    """
+    Запрашиваем у пользователя город, к котором нужно искать отели
+
+    :param message: Объект Message
+    """
     logger.info(f'Пользователь {message.from_user.id} перешел в функцию {get_city.__name__}')
     if message.text.isalpha():
         bot.set_state(message.from_user.id, MyStates.city, message.chat.id)
         with bot.retrieve_data(message.from_user.id, message.chat.id) as data:
             data['city'] = str(message.text)
-            data1['city'] = str(message.text)
         bot.send_message(message.chat.id, 'Я нашел несколько вариантов, выберите подходящий: ',
-                         reply_markup=keyboard_for_city.keyboard(str(message.text)))
+                         reply_markup=keyboard_for_city.keyboard(city_name=str(message.text), message=message))
     else:
         bot.send_message(message.chat.id, 'Название города должно содержать только буквы! Попробуйте еще раз.')
         get_city(message=message)
@@ -46,46 +51,16 @@ def get_city(message: Message) -> None:
 @logger.catch
 @bot.callback_query_handler(func=lambda call: True, state=MyStates.city)
 def callback_city(call: CallbackQuery):
-    """ Получаем ответ пользователя, путем нажатия на inline-кнопки, записываем город и его id"""
-    list_of_cities = requests.find_city(data1['city'])
-    tuple_of_names, tuple_of_id = zip(*list_of_cities)
+    """
+    Получаем ответ пользователя, путем нажатия на inline-кнопки, записываем город и его Id
+
+    :param call: Объект CallbackQuery
+    """
     logger.info(f'Пользователь {call.from_user.id} перешел в функцию {callback_city.__name__}')
+    bot.set_state(call.from_user.id, MyStates.city_id, call.message.chat.id)
 
-    if call.data == 'btn1':
-        bot.set_state(call.from_user.id, MyStates.concretize_city, call.message.chat.id)
-        bot.set_state(call.from_user.id, MyStates.city_id, call.message.chat.id)
-        with bot.retrieve_data(call.from_user.id, call.message.chat.id) as data:
-            data['concretize_city'] = tuple_of_names[0]
-            data['city_id'] = tuple_of_id[0]
-
-    elif call.data == 'btn2':
-        bot.set_state(call.from_user.id, MyStates.concretize_city, call.message.chat.id)
-        bot.set_state(call.from_user.id, MyStates.city_id, call.message.chat.id)
-        with bot.retrieve_data(call.from_user.id, call.message.chat.id) as data:
-            data['concretize_city'] = tuple_of_names[1]
-            data['city_id'] = tuple_of_id[1]
-
-    elif call.data == 'btn3':
-        bot.set_state(call.from_user.id, MyStates.concretize_city, call.message.chat.id)
-        bot.set_state(call.from_user.id, MyStates.city_id, call.message.chat.id)
-        with bot.retrieve_data(call.from_user.id, call.message.chat.id) as data:
-            data['concretize_city'] = tuple_of_names[2]
-            data['city_id'] = tuple_of_id[2]
-
-    elif call.data == 'btn4':
-        bot.set_state(call.from_user.id, MyStates.concretize_city, call.message.chat.id)
-        bot.set_state(call.from_user.id, MyStates.city_id, call.message.chat.id)
-        with bot.retrieve_data(call.from_user.id, call.message.chat.id) as data:
-            data['concretize_city'] = tuple_of_names[3]
-            data['city_id'] = tuple_of_id[3]
-
-    elif call.data == 'btn5':
-        bot.set_state(call.from_user.id, MyStates.concretize_city, call.message.chat.id)
-        bot.set_state(call.from_user.id, MyStates.city_id, call.message.chat.id)
-        with bot.retrieve_data(call.from_user.id, call.message.chat.id) as data:
-            data['concretize_city'] = tuple_of_names[4]
-            data['city_id'] = tuple_of_id[4]
-
+    with bot.retrieve_data(call.from_user.id, call.message.chat.id) as data:
+        data['city_id'] = str(call.data)
     bot.send_message(call.message.chat.id, 'Укажите количество отелей, которое необходимо '
                                            'вывести в результате (максимум 10): ')
 
@@ -93,7 +68,11 @@ def callback_city(call: CallbackQuery):
 @logger.catch
 @bot.message_handler(state=MyStates.city_id)
 def to_send_photos(message: Message) -> None:
-    """Спрашиваем нужны ли пользователю фотографии"""
+    """
+    Путем inline клавиатуры спрашиваем у пользователя надобность клавиатуры
+
+    :param message: Объект Message
+    """
     logger.info(f'Пользователь {message.from_user.id} перешел в функцию {to_send_photos.__name__}')
     if message.text.isdigit() and int(message.text) < 11:
         bot.set_state(message.from_user.id, MyStates.number_of_hotels, message.chat.id)
@@ -108,7 +87,11 @@ def to_send_photos(message: Message) -> None:
 @logger.catch
 @bot.callback_query_handler(func=lambda call: True, state=MyStates.number_of_hotels)
 def callback_get_photos_quantity(call: CallbackQuery) -> None:
-    """Запрашиваем у пользователя количество фотографий отелей, которое нужно найти"""
+    """
+    Запрашиваем у пользователя количество фотографий отелей, которое нужно найти
+
+    :param call: Объект CallbackQuery
+    """
     logger.info(f'Пользователь {call.from_user.id} перешел в функцию {callback_get_photos_quantity.__name__}')
     if call.data == 'Да':
         with bot.retrieve_data(call.from_user.id, call.message.chat.id) as data:
@@ -126,7 +109,11 @@ def callback_get_photos_quantity(call: CallbackQuery) -> None:
 @logger.catch
 @bot.message_handler(state=MyStates.send_photos)
 def get_arrival_date(message: Message) -> None:
-    """Используя модуль календаря устанавливаем дату въезда"""
+    """
+    Используя модуль календаря устанавливаем дату въезда
+
+    :param message: Объект Message
+    """
     logger.info(f'Пользователь {message.from_user.id} перешел в функцию {get_arrival_date.__name__}')
     with bot.retrieve_data(message.from_user.id, message.chat.id) as data:
         bot.set_state(message.from_user.id, MyStates.number_of_hotel_photos, message.chat.id)
@@ -138,6 +125,11 @@ def get_arrival_date(message: Message) -> None:
 @logger.catch
 @bot.callback_query_handler(func=DetailedTelegramCalendar.func(calendar_id=1))
 def callback_arrival_date(call: CallbackQuery):
+    """
+    С помощью inline клавиатуры устанавливаем дату заезда
+
+    :param call: Объект CallbackQuery
+    """
     logger.info(f'Пользователь {call.from_user.id} перешел в функцию {callback_arrival_date.__name__}')
     try:
         bot.set_state(call.from_user.id, MyStates.arrival_date, call.message.chat.id)
@@ -164,6 +156,11 @@ def callback_arrival_date(call: CallbackQuery):
 @logger.catch
 @bot.callback_query_handler(func=DetailedTelegramCalendar.func(calendar_id=2))
 def callback_departure_date(call: CallbackQuery):
+    """
+    С помощью inline клавиатуры устанавливаем дату выезда
+
+    :param call: Объект CallbackQuery
+    """
     logger.info(f'Пользователь {call.from_user.id} перешел в функцию {callback_departure_date.__name__}')
     try:
         bot.set_state(call.from_user.id, MyStates.departure_date, call.message.chat.id)
@@ -188,7 +185,11 @@ def callback_departure_date(call: CallbackQuery):
 @logger.catch
 @bot.message_handler(state=MyStates.checkout_day)
 def withdraw_hotels(message: Message) -> None:
-    """Выводим заданное кол-во отелей и фотографии с их описанием"""
+    """
+    Выводим заданное кол-во отелей и фотографии с их описанием
+
+    :param message: Объект Message
+    """
     logger.info(f'Пользователь {message.from_user.id} перешел в функцию {withdraw_hotels.__name__}')
     with bot.retrieve_data(message.from_user.id, message.chat.id) as data:
         city_id = data['city_id']
