@@ -6,7 +6,6 @@ from config_data.config import RAPID_API_KEY
 def find_city(city_name: str) -> dict:
     """
     Функция поиска возможных вариантов локаций
-
     :param city_name: Название города для API запроса;
     :return: Словарь {точное название: id}
     """
@@ -27,10 +26,11 @@ def find_city(city_name: str) -> dict:
 
 
 def get_hotel_name_list(city_id: str, check_in_day: int, check_in_month: int, check_in_year: int,
-                        check_out_day: int, check_out_month: int, check_out_year: int) -> list:
+                        check_out_day: int, check_out_month: int,
+                        check_out_year: int, hotel_quantity: int) -> tuple[dict, list, list]:
     """
     Функция поиска названий отелей и их Id
-
+    :param hotel_quantity: Нужное количество отелей
     :param city_id: Id города
     :param check_in_day: День въезда
     :param check_in_month: Месяц въезда
@@ -78,21 +78,26 @@ def get_hotel_name_list(city_id: str, check_in_day: int, check_in_month: int, ch
     }
     response = requests.request("POST", url, json=payload, headers=headers)
     data = json.loads(response.text)
-    hotel_names = list()
-    hotel_id = list()
-    for values in data['data']['propertySearch']['properties']:
-        hotel_names.append(values['name'])
-        hotel_id.append(values['id'])
-    return list(zip(hotel_names, hotel_id))
+    hotel_dict = dict()
+    price = list()
+    distance_from_center = list()
+    for values in data['data']['propertySearch']['properties'][0:hotel_quantity]:
+        hotel_dict[values['name']] = values['id']
+        price.append(round(values['price']['lead']['amount'], 2))
+        distance_from_center.append(round(values['destinationInfo']['distanceFromDestination']['value'] * 1.609, 2))
+    return hotel_dict, price, distance_from_center
 
 
-def get_hotel_photos(hotel_id: str, photos_quantity: int) -> list[str]:
+def structure_hotel_info(hotel_name: str, hotel_id: str, photos_quantity: int,
+                         price: int, distance_from_center: int) -> dict:
     """
-    Функция поиска фотографий отелей по Id отелей
-
-    :param hotel_id: Id отеля для поиска фотографий этого отеля
-    :param photos_quantity: Количество нужных фотографий
-    :return: Список ссылок на фотографии
+    Функция, структурирующая информацию об отеле
+    :param distance_from_center: Дистанция в километрах от центра
+    :param price: Цена за одну ночь
+    :param photos_quantity: Нужное количество фотографий отеля
+    :param hotel_id: Id отеля
+    :param hotel_name: Название отеля
+    :return: Структурированная информация об отеле
     """
     url = "https://hotels4.p.rapidapi.com/properties/v2/detail"
 
@@ -111,8 +116,19 @@ def get_hotel_photos(hotel_id: str, photos_quantity: int) -> list[str]:
 
     response = requests.request("POST", url, json=payload, headers=headers)
     data = json.loads(response.text)
-    image_list: list[str] = list()
 
-    for images in data['data']['propertyInfo']['propertyGallery']['images'][0:photos_quantity]:
-        image_list.append(images['image']['url'])
-    return image_list
+    hotel_info = {
+        'name': hotel_name,
+        'id': hotel_id,
+        'url': f'https://www.hotels.com/h{hotel_id}.Hotel-Information',
+        'address': data['data']['propertyInfo']['summary']['location']['address']['addressLine'],
+        'price': price,
+        'distance': distance_from_center,
+        'latitude': [latitude['mapMarker']['latLong']['latitude']
+                     for latitude in data['data']['propertyInfo']['summary']['map']['markers'][:1]],
+        'longitude': [longitude['mapMarker']['latLong']['longitude']
+                     for longitude in data['data']['propertyInfo']['summary']['map']['markers'][:1]],
+        'photo': [images['image']['url']
+                  for images in data['data']['propertyInfo']['propertyGallery']['images'][0:photos_quantity]]
+    }
+    return hotel_info

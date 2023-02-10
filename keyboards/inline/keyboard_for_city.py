@@ -7,7 +7,6 @@ from telebot.types import Message
 def keyboard(city_name: str, message: Message) -> InlineKeyboardMarkup | None:
     """
     Клавиатура с вариантами локаций
-
     :param city_name: Название города, в котором нудно искать конкретные локации
     :param message: Объект Message
     :return: Если найдены локации, то клавиатура с приближенными локациями, в противном случае None
