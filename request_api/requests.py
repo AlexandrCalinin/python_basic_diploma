@@ -42,9 +42,9 @@ def get_hotel_name_list(city_id: str, check_in_day: int, check_in_month: int, ch
     """
     url = "https://hotels4.p.rapidapi.com/properties/v2/list"
     payload = {
-        "currency": "RUB",
+        "currency": "USD",
         "eapid": 1,
-        "locale": "ru_RU",
+        "locale": "en_EN",
         "siteId": 300000001,
         "destination": {"regionId": city_id},
         "checkInDate": {
@@ -67,7 +67,7 @@ def get_hotel_name_list(city_id: str, check_in_day: int, check_in_month: int, ch
         "resultsSize": 200,
         "sort": "PRICE_LOW_TO_HIGH",
         "filters": {"price": {
-            "max": 10000,
+            "max": 300,
             "min": 100
         }}
     }

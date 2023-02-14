@@ -1,3 +1,4 @@
+from telebot.types import InputMediaPhoto
 from datetime import date
 from states.state import MyStates
 from telebot.types import Message, CallbackQuery
@@ -176,19 +177,18 @@ def callback_departure_date(call: CallbackQuery):
                                   call.message.message_id)
             with bot.retrieve_data(call.from_user.id, call.message.chat.id) as data:
                 data['departure_date'] = result.strftime('%d-%m-%Y')
+            withdraw_hotels(call=call)
     except Exception as exc:
         print(exc)
 
 
 @logger.catch
-@bot.message_handler(state=MyStates.checkout_day)
-def withdraw_hotels(message: Message) -> None:
+def withdraw_hotels(call) -> None:
     """
     Выводим заданное кол-во отелей и фотографии с их описанием
-    :param message: Объект Message
     """
-    logger.info(f'Пользователь {message.from_user.id} перешел в функцию {withdraw_hotels.__name__}')
-    with bot.retrieve_data(message.from_user.id, message.chat.id) as data:
+    logger.info(f'Пользователь {call.from_user.id} перешел в функцию {withdraw_hotels.__name__}')
+    with bot.retrieve_data(call.from_user.id, call.message.chat.id) as data:
         city_id = data['city_id']
         arrival_date = data['arrival_date']
         check_in_date = arrival_date.split('-')
@@ -208,5 +208,10 @@ def withdraw_hotels(message: Message) -> None:
             request = requests.structure_hotel_info(hotel_name=hotel_names, hotel_id=hotel_id,
                                                     photos_quantity=data['hotel_photo_quantity'],
                                                     price=price[counter], distance_from_center=distance[counter])
-            print(request)
-            counter +=1
+            media = [InputMediaPhoto(request['photo'][indexes], caption=f"Название отеля: {request['name']}\n"
+                                     f"Адрес отеля: {request['address']}\n"
+                                     f"Цена за ночь: {request['price']} долларов\n"
+                                     f"Расстояние от центра: {request['distance']} км")
+                     for indexes in range(0, len(request['photo']))]
+            bot.send_media_group(call.message.chat.id, media)
+            counter += 1
