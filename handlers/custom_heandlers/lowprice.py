@@ -75,7 +75,7 @@ def to_send_photos(message: Message) -> None:
     """
     try:
         logger.info(f'Пользователь {message.from_user.id} перешел в функцию {to_send_photos.__name__}')
-        if message.text.isdigit() and int(message.text) < 11:
+        if message.text.isdigit() and 0 < int(message.text) < 11:
             bot.set_state(message.from_user.id, MyStates.number_of_hotels, message.chat.id)
             with bot.retrieve_data(message.from_user.id, message.chat.id) as data:
                 data['hotels_quantity'] = str(message.text)
@@ -104,6 +104,7 @@ def callback_get_photos_quantity(call: CallbackQuery) -> None:
         with bot.retrieve_data(call.from_user.id, call.message.chat.id) as data:
             bot.set_state(call.from_user.id, MyStates.send_photos, call.message.chat.id)
             data['send_photos'] = 'Да'
+            data['hotel_photo_quantity'] = 0
         calendar, step = DetailedTelegramCalendar(calendar_id=1).build()
         bot.send_message(call.message.chat.id, f"Select {LSTEP[step]}", reply_markup=calendar)
 
@@ -208,10 +209,16 @@ def withdraw_hotels(call) -> None:
             request = requests.structure_hotel_info(hotel_name=hotel_names, hotel_id=hotel_id,
                                                     photos_quantity=data['hotel_photo_quantity'],
                                                     price=price[counter], distance_from_center=distance[counter])
-            media = [InputMediaPhoto(request['photo'][indexes], caption=f"Название отеля: {request['name']}\n"
-                                     f"Адрес отеля: {request['address']}\n"
-                                     f"Цена за ночь: {request['price']} долларов\n"
-                                     f"Расстояние от центра: {request['distance']} км")
-                     for indexes in range(0, len(request['photo']))]
-            bot.send_media_group(call.message.chat.id, media)
+            if data['hotel_photo_quantity'] > 0:
+                media = [InputMediaPhoto(request['photo'][indexes], caption=f"Название отеля: {request['name']}\n"
+                                         f"Адрес отеля: {request['address']}\n"
+                                         f"Цена за ночь: {request['price']} долларов\n"
+                                         f"Расстояние от центра: {request['distance']} км")
+                         for indexes in range(0, len(request['photo']))]
+                bot.send_media_group(call.message.chat.id, media)
+            else:
+                bot.send_message(call.message.chat.id, f"Название отеля: {request['name']}\n"
+                                                       f"Адрес отеля: {request['address']}\n"
+                                                       f"Цена за ночь: {request['price']} долларов\n"
+                                                       f"Расстояние от центра: {request['distance']} км")
             counter += 1
