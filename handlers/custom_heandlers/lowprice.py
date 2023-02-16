@@ -212,13 +212,15 @@ def withdraw_hotels(call) -> None:
             if data['hotel_photo_quantity'] > 0:
                 media = [InputMediaPhoto(request['photo'][indexes], caption=f"Название отеля: {request['name']}\n"
                                          f"Адрес отеля: {request['address']}\n"
-                                         f"Цена за ночь: {request['price']} долларов\n"
+                                         f"Цена за ночь: {request['price']} долларов (2 взрослых, 2 ребенка)\n"
                                          f"Расстояние от центра: {request['distance']} км")
-                         for indexes in range(0, len(request['photo']))]
+                         if len(request['photo']) - indexes == 1 else InputMediaPhoto(request['photo'][indexes])
+                          for indexes in range(0, len(request['photo']))]
                 bot.send_media_group(call.message.chat.id, media)
             else:
                 bot.send_message(call.message.chat.id, f"Название отеля: {request['name']}\n"
                                                        f"Адрес отеля: {request['address']}\n"
-                                                       f"Цена за ночь: {request['price']} долларов\n"
+                                                       f"Цена за ночь: {request['price']} "
+                                                       f"долларов (2 взрослых, 2 ребенка)\n"
                                                        f"Расстояние от центра: {request['distance']} км")
             counter += 1
