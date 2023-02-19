@@ -10,7 +10,7 @@ from loguru import logger
 
 
 @logger.catch
-@bot.message_handler(commands=['lowprice'])
+@bot.message_handler(commands=['lowprice', 'highprice'])
 def command(message: Message):
     """
     Начинаем работать с lowprice, запрашиваем название города
@@ -20,8 +20,12 @@ def command(message: Message):
         bot.delete_state(message.from_user.id, message.chat.id)
         bot.set_state(message.from_user.id, MyStates.command, message.chat.id)
         logger.info(f'Пользователь {message.from_user.id} ввел команду {command.__name__}')
-        bot.send_message(message.chat.id, 'Здравствуйте! Это функция поиска отелей по низким ценам. '
-                                          'Укажите город для поиска: ')
+        if message.text == 'lowprice':
+            bot.send_message(message.chat.id, 'Здравствуйте! Это функция поиска отелей по низким ценам. '
+                                              'Укажите город для поиска: ')
+        else:
+            bot.send_message(message.chat.id, 'Здравствуйте! Это функция поиска отелей по высоким ценам. '
+                                              'Укажите город для поиска: ')
         with bot.retrieve_data(message.from_user.id, message.chat.id) as data:
             data['command'] = str(message.text)
     except Exception as exc:
@@ -202,7 +206,10 @@ def withdraw_hotels(call) -> None:
                                                                    check_out_day=int(check_out_date[0]),
                                                                    check_out_month=int(check_out_date[1]),
                                                                    check_out_year=int(check_out_date[2]),
-                                                                   hotel_quantity=int(data['hotels_quantity']))
+                                                                   hotel_quantity=int(data['hotels_quantity']),
+                                                                   sort="PRICE_LOW_TO_HIGH"
+                                                                   if data['command'] == 'lowprice'
+                                                                   else "PRICE_HIGH_TO_LOW")
 
         counter = 0
         for hotel_names, hotel_id in hotel_dict.items():

@@ -27,9 +27,10 @@ def find_city(city_name: str) -> dict:
 
 def get_hotel_name_list(city_id: str, check_in_day: int, check_in_month: int, check_in_year: int,
                         check_out_day: int, check_out_month: int,
-                        check_out_year: int, hotel_quantity: int) -> tuple[dict, list, list]:
+                        check_out_year: int, hotel_quantity: int, sort: str) -> tuple[dict, list, list]:
     """
     Функция поиска названий отелей и их Id
+    :param sort: Сортировка (сначала дешевые или дорогие)
     :param hotel_quantity: Нужное количество отелей
     :param city_id: Id города
     :param check_in_day: День въезда
@@ -40,6 +41,17 @@ def get_hotel_name_list(city_id: str, check_in_day: int, check_in_month: int, ch
     :param check_out_year: Год выезда
     :return: Список [название отеля, его Id]
     """
+    filters = dict()
+    if sort == "PRICE_LOW_TO_HIGH":
+        filters= {"price": {
+            "max": 300,
+            "min": 50
+        }}
+    elif sort == "PRICE_HIGH_TO_LOW":
+        filters= {"price": {
+            "max": 5000,
+            "min": 300
+        }}
     url = "https://hotels4.p.rapidapi.com/properties/v2/list"
     payload = {
         "currency": "USD",
@@ -65,11 +77,8 @@ def get_hotel_name_list(city_id: str, check_in_day: int, check_in_month: int, ch
         ],
         "resultsStartingIndex": 0,
         "resultsSize": 200,
-        "sort": "PRICE_LOW_TO_HIGH",
-        "filters": {"price": {
-            "max": 300,
-            "min": 100
-        }}
+        "sort": sort,
+        "filters": filters
     }
     headers = {
         "content-type": "application/json",
