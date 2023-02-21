@@ -9,6 +9,7 @@ class MyStates(StatesGroup):
     command = State()
     city = State()
     city_id = State()
+    price = State()
     number_of_hotels = State()
     send_photos = State()
     number_of_hotel_photos = State()

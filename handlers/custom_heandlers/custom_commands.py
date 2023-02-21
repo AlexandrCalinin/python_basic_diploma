@@ -10,10 +10,10 @@ from loguru import logger
 
 
 @logger.catch
-@bot.message_handler(commands=['lowprice', 'highprice'])
+@bot.message_handler(commands=['lowprice', 'highprice', 'bestdeal'])
 def command(message: Message):
     """
-    Начинаем работать с lowprice, запрашиваем название города
+    Начинаем работать с командами, запрашиваем название города
     :param message: Объект Message
     """
     try:
@@ -21,15 +21,19 @@ def command(message: Message):
         bot.set_state(message.from_user.id, MyStates.command, message.chat.id)
         logger.info(f'Пользователь {message.from_user.id} ввел команду {command.__name__}')
         with bot.retrieve_data(message.from_user.id, message.chat.id) as data:
-            if message.text == '/lowprice':
+            data['command'] = str(message.text)
+            if data['command'] == '/lowprice':
                 data['sort'] = "PRICE_LOW_TO_HIGH"
                 bot.send_message(message.chat.id, 'Здравствуйте! Это функция поиска отелей по низким ценам. '
                                                   'Укажите город для поиска: ')
-            if message.text == '/highprice':
+            elif data['command'] == '/highprice':
                 data['sort'] = "PRICE_HIGH_TO_LOW"
                 bot.send_message(message.chat.id, 'Здравствуйте! Это функция поиска отелей по высоким ценам. '
                                                   'Укажите город для поиска: ')
-            data['command'] = str(message.text)
+            elif data['command'] == '/bestdeal':
+                data['sort'] = "DISTANCE"
+                bot.send_message(message.chat.id, 'Здравствуйте! Это функция поиска отелей с наилучшим предложением по '
+                                                  'заданным критериям. Укажите город для поиска: ')
     except Exception as exc:
         print(exc)
 
@@ -64,11 +68,33 @@ def callback_city(call: CallbackQuery):
     :param call: Объект CallbackQuery
     """
     logger.info(f'Пользователь {call.from_user.id} перешел в функцию {callback_city.__name__}')
-    bot.set_state(call.from_user.id, MyStates.city_id, call.message.chat.id)
 
     with bot.retrieve_data(call.from_user.id, call.message.chat.id) as data:
         data['city_id'] = str(call.data)
-    bot.send_message(call.message.chat.id, 'Укажите количество отелей, которое необходимо '
+        if data['command'] == '/bestdeal':
+            bot.set_state(call.from_user.id, MyStates.price, call.message.chat.id)
+            bot.send_message(call.message.chat.id, 'Введите цену за ночь в долларах (через тире)')
+        else:
+            bot.set_state(call.from_user.id, MyStates.city_id, call.message.chat.id)
+            bot.send_message(call.message.chat.id, 'Укажите количество отелей, которое необходимо '
+                                                   'вывести в результате (максимум 10): ')
+
+
+@logger.catch
+@bot.message_handler(state=MyStates.price)
+def get_price(message: Message) -> None:
+    """
+    При выборе команды bestdeal запрашиваем минимальную и максимальную цену за ночь
+    :param message: Объект Message
+    """
+    logger.info(f'Пользователь {message.from_user.id} перешел в функцию {get_price.__name__}')
+    bot.set_state(message.from_user.id, MyStates.city_id, message.chat.id)
+
+    price = str(message.text).split('-')
+    with bot.retrieve_data(message.from_user.id, message.chat.id) as data:
+        data['min_price'] = int(price[0])
+        data['max_price'] = int(price[1])
+    bot.send_message(message.chat.id, 'Укажите количество отелей, которое необходимо '
                                            'вывести в результате (максимум 10): ')
 
 
@@ -209,7 +235,9 @@ def withdraw_hotels(call) -> None:
                                                                    check_out_month=int(check_out_date[1]),
                                                                    check_out_year=int(check_out_date[2]),
                                                                    hotel_quantity=int(data['hotels_quantity']),
-                                                                   sort=data['sort'])
+                                                                   sort=data['sort'],
+                                                                   min_price=data['min_price'],
+                                                                   max_price=data['max_price'])
 
         counter = 0
         for hotel_names, hotel_id in hotel_dict.items():
