@@ -256,6 +256,6 @@ def withdraw_hotels(call) -> None:
                 bot.send_message(call.message.chat.id, f"Название отеля: {request['name']}\n"
                                                        f"Адрес отеля: {request['address']}\n"
                                                        f"Цена за ночь: {request['price']} "
-                                                       f"долларов (2 взрослых, 2 ребенка)\n"
+                                                       f"долларов (1 взрослый, 2 ребенка)\n"
                                                        f"Расстояние от центра: {request['distance']} км")
             counter += 1

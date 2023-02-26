@@ -79,7 +79,7 @@ def get_hotel_name_list(city_id: str, check_in_day: int, check_in_month: int, ch
         },
         "rooms": [
             {
-                "adults": 2,
+                "adults": 1,
                 "children": [{"age": 5}, {"age": 7}]
             }
         ],
@@ -142,10 +142,10 @@ def structure_hotel_info(hotel_name: str, hotel_id: str, photos_quantity: int,
         'price': price,
         'distance': distance_from_center,
         'latitude': [latitude['mapMarker']['latLong']['latitude']
-                     for latitude in data['data']['propertyInfo']['summary']['map']['markers'][:1]],
+                    for latitude in data['data']['propertyInfo']['summary']['map']['markers'][:1]],
         'longitude': [longitude['mapMarker']['latLong']['longitude']
                      for longitude in data['data']['propertyInfo']['summary']['map']['markers'][:1]],
         'photo': [images['image']['url']
-                  for images in data['data']['propertyInfo']['propertyGallery']['images'][0:photos_quantity]]
+                 for images in data['data']['propertyInfo']['propertyGallery']['images'][0:photos_quantity]]
     }
     return hotel_info
