@@ -3,13 +3,14 @@ from loguru import logger
 from datetime import datetime
 
 
-db = SqliteDatabase('users.db')
+db = SqliteDatabase('database.db')
 
 class BaseModel(Model):
     """Класс базовой модели для ORM"""
 
     class Meta:
         database: SqliteDatabase = db
+        order_by = 'id'
 
 
 class User(BaseModel):
@@ -19,11 +20,11 @@ class User(BaseModel):
     Attributes:
         name - имя пользователя
         user_id - id пользователя
-        chat_id - id чата
+        command - выбранная команда
+        date - дата
     """
     name = CharField()
     user_id = IntegerField(unique=True)
-    chat_id = IntegerField()
     command = CharField()
     date = DateField()
 
@@ -42,7 +43,7 @@ class City(BaseModel):
     """
 
     user_id = IntegerField(unique=True)
-    city = IntegerField()
+    city = CharField()
     city_id = IntegerField()
 
     class Meta:
@@ -92,7 +93,7 @@ def create_tables():
     """Создает таблицы в базе данных, если они не созданы"""
     with db:
         if not db:
-            db.create_tables([User, Hotels, Photos])
+            db.create_tables([User, City, Hotels, Photos])
 
 
 def data_for_db(data: dict) -> None:
@@ -105,27 +106,26 @@ def data_for_db(data: dict) -> None:
     with db.atomic():
         user = User.get_or_create(
             name = data['user_name'],
-            user_id = data['user_id'],
-            chat_id = data['chat_id'],
+            user_id = int(data['user_id']),
             command = data['command'],
             date = datetime.now()
         )
 
         city = City.get_or_create(
-            user_id = data['user_id'],
+            user_id = int(data['user_id']),
             city = data['city'],
-            city_id = data['city_id']
+            city_id = int(data['city_id'])
         )
 
         hotels = Hotels.get_or_create(
-            user_id = data['user_id'],
-            hotel_id = data['hotel_id'],
-            hotel_quantity = data['hotels_quantity'],
-            hotel_photo_quantity = data['hotel_photo_quantity']
+            user_id = int(data['user_id']),
+            hotel_id = int(data['hotel_id']),
+            hotel_quantity = int(data['hotels_quantity']),
+            hotel_photo_quantity = int(data['hotel_photo_quantity'])
         )
 
         photos = Photos.get_or_create(
-            user_id = data['user_id'],
-            hotel_id = data['hotel_id'],
+            user_id = int(data['user_id']),
+            hotel_id = int(data['hotel_id']),
             photos = data['urls']
         )

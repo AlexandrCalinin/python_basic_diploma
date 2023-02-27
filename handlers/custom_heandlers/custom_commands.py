@@ -7,6 +7,7 @@ from keyboards.inline import keyboard_for_city, keyboard_for_photos
 from request_api import requests
 from telegram_bot_calendar import DetailedTelegramCalendar, LSTEP
 from loguru import logger
+from database.database import data_for_db
 
 
 @logger.catch
@@ -21,16 +22,18 @@ def command(message: Message):
         bot.set_state(message.from_user.id, MyStates.command, message.chat.id)
         logger.info(f'Пользователь {message.from_user.id} ввел команду {command.__name__}')
         with bot.retrieve_data(message.from_user.id, message.chat.id) as data:
-            data['command'] = str(message.text)
-            if data['command'] == '/lowprice':
+            data['command'] = str(message.text)[1:]
+            data['user_id'] = str(message.from_user.id)
+            data['user_name'] = str(message.from_user.first_name)
+            if data['command'] == 'lowprice':
                 data['sort'] = "PRICE_LOW_TO_HIGH"
                 bot.send_message(message.chat.id, 'Здравствуйте! Это функция поиска отелей по низким ценам. '
                                                   'Укажите город для поиска: ')
-            elif data['command'] == '/highprice':
+            elif data['command'] == 'highprice':
                 data['sort'] = "PRICE_HIGH_TO_LOW"
                 bot.send_message(message.chat.id, 'Здравствуйте! Это функция поиска отелей по высоким ценам. '
                                                   'Укажите город для поиска: ')
-            elif data['command'] == '/bestdeal':
+            elif data['command'] == 'bestdeal':
                 data['sort'] = "DISTANCE"
                 bot.send_message(message.chat.id, 'Здравствуйте! Это функция поиска отелей с наилучшим предложением по '
                                                   'заданным критериям. Укажите город для поиска: ')
@@ -71,7 +74,7 @@ def callback_city(call: CallbackQuery):
 
     with bot.retrieve_data(call.from_user.id, call.message.chat.id) as data:
         data['city_id'] = str(call.data)
-        if data['command'] == '/bestdeal':
+        if data['command'] == 'bestdeal':
             bot.set_state(call.from_user.id, MyStates.price, call.message.chat.id)
             bot.send_message(call.message.chat.id, 'Введите цену за ночь в долларах (через тире)')
         else:
@@ -236,8 +239,10 @@ def withdraw_hotels(call) -> None:
                                                                    check_out_year=int(check_out_date[2]),
                                                                    hotel_quantity=int(data['hotels_quantity']),
                                                                    sort=data['sort'],
-                                                                   min_price=data['min_price'],
-                                                                   max_price=data['max_price'])
+                                                                   min_price=data['min_price']
+                                                                   if data['command'] == 'bestdeal' else None,
+                                                                   max_price=data['max_price']
+                                                                   if data['command'] == 'bestdeal' else None)
 
         counter = 0
         for hotel_names, hotel_id in hotel_dict.items():
@@ -258,4 +263,6 @@ def withdraw_hotels(call) -> None:
                                                        f"Цена за ночь: {request['price']} "
                                                        f"долларов (1 взрослый, 2 ребенка)\n"
                                                        f"Расстояние от центра: {request['distance']} км")
+            data['hotel_id'] = str(hotel_id)
+            data_for_db(data=data)
             counter += 1
