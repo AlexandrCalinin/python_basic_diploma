@@ -231,6 +231,12 @@ def withdraw_hotels(call) -> None:
         check_in_date = arrival_date.split('-')
         departure_date = data['departure_date']
         check_out_date = departure_date.split('-')
+        if data['command'] == 'lowprice':
+            data['min_price'] = 50
+            data['max_price'] = 300
+        elif data['command'] == 'highprice':
+            data['min_price'] = 300
+            data['max_price'] = 5000
         hotel_dict, price, distance = requests.get_hotel_name_list(city_id=str(city_id),
                                                                    check_in_day=int(check_in_date[0]),
                                                                    check_in_month=int(check_in_date[1]),
@@ -240,11 +246,8 @@ def withdraw_hotels(call) -> None:
                                                                    check_out_year=int(check_out_date[2]),
                                                                    hotel_quantity=int(data['hotels_quantity']),
                                                                    sort=data['sort'],
-                                                                   min_price=data['min_price']
-                                                                   if data['command'] == 'bestdeal' else None,
-                                                                   max_price=data['max_price']
-                                                                   if data['command'] == 'bestdeal' else None)
-
+                                                                   min_price=data['min_price'],
+                                                                   max_price=data['max_price'])
         counter = 0
         for hotel_names, hotel_id in hotel_dict.items():
             request = requests.structure_hotel_info(hotel_name=hotel_names, hotel_id=hotel_id,

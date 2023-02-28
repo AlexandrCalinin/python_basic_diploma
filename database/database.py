@@ -102,14 +102,6 @@ class Photo(BaseModel):
         db_table = 'photos'
 
 
-@logger.catch
-def create_tables():
-    """Создает таблицы в базе данных, если они не созданы"""
-    with db:
-        if not db:
-            db.create_tables([User, HotelsSearch, Hotel, Photo])
-
-
 def data_for_db(data: dict) -> None:
     """
     Записывает данные в бд
@@ -129,7 +121,6 @@ def data_for_db(data: dict) -> None:
             user=user,
             city=data['city'],
             city_id=int(data['city_id']),
-            date_time=datetime.strptime(data['date_time'], '%d.%m.%Y %H:%M:%S'),
             date_in=datetime.strptime(data['arrival_date'], '%d.%m.%Y'),
             date_out=datetime.strptime(data['departure_date'], '%d.%m.%Y'),
             hotels_amount=int(data['hotels_quantity']),
@@ -141,11 +132,11 @@ def data_for_db(data: dict) -> None:
         for i_hotel in data['hotels']:
             hotel = Hotel.create(
                 hotels_search=hotels_search,
-                name=i_hotel['hotel'],
+                name=i_hotel['name'],
                 hotel_id=int(i_hotel['hotel_id']),
                 address=i_hotel['address'],
                 distance=int(i_hotel['distance']),
                 price=int(i_hotel['price'])
             )
-            for photo in i_hotel['photos_list']:
+            for photo in i_hotel['photo']:
                 Photo.create(hotel=hotel, url=photo)
