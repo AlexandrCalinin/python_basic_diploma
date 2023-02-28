@@ -22,8 +22,6 @@ class User(BaseModel):
         name - имя пользователя
         user_id - id пользователя
         command - выбранная команда
-        date - дата
-        chat_id - id чата
     """
     name = CharField()
     chat_id = IntegerField()
@@ -38,7 +36,17 @@ class HotelsSearch(BaseModel):
     Класс для хранения общей информации об отеле
 
     Attributes:
-
+        command - команда
+        user - объект класса User
+        city - название города
+        city_id - id города
+        date_time - дата и время поиска
+        date_in - дата въезда
+        date_out - дата выезда
+        hotels_amount - количество отелей
+        photos_amount - количество фотографий
+        min_price - минимальная цена
+        max_price - максимальная цена
     """
 
     command = CharField(),
@@ -59,10 +67,12 @@ class Hotel(BaseModel):
     Класс для хранения информации об отеле
 
     Attributes:
-        user_id - id пользователя
         hotel_id - id чата
-        hotel_quantity - количество отелей
-        hotel_photo_quantity - количество фотографий отеля
+        hotels_search - объект класса HotelsSearch
+        name - название отеля
+        address - адрес отеля
+        price - цена за ночь
+        distance - расстояние до центра
     """
 
     hotel_id = IntegerField()
@@ -81,7 +91,6 @@ class Photo(BaseModel):
     Класс фотографий для их сохранения
 
     Attributes:
-        user_id - имя пользователя
         hotel - объект класса Hotel
         url - ссылки на фотографии
     """
