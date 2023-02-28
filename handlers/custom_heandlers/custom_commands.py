@@ -24,6 +24,7 @@ def command(message: Message):
         with bot.retrieve_data(message.from_user.id, message.chat.id) as data:
             data['command'] = str(message.text)[1:]
             data['user_id'] = str(message.from_user.id)
+            data['chat_id'] = str(message.chat.id)
             data['user_name'] = str(message.from_user.first_name)
             if data['command'] == 'lowprice':
                 data['sort'] = "PRICE_LOW_TO_HIGH"
@@ -59,8 +60,8 @@ def get_city(message: Message) -> None:
         else:
             raise TypeError
     except TypeError:
-            bot.send_message(message.chat.id, 'Название города должно содержать только буквы! Попробуйте еще раз.')
-            get_city(message=message)
+        bot.send_message(message.chat.id, 'Название города должно содержать только буквы! Попробуйте еще раз.')
+        get_city(message=message)
 
 
 @logger.catch
@@ -255,7 +256,7 @@ def withdraw_hotels(call) -> None:
                                          f"Цена за ночь: {request['price']} долларов (2 взрослых, 2 ребенка)\n"
                                          f"Расстояние от центра: {request['distance']} км")
                          if len(request['photo']) - indexes == 1 else InputMediaPhoto(request['photo'][indexes])
-                          for indexes in range(0, len(request['photo']))]
+                         for indexes in range(0, len(request['photo']))]
                 bot.send_media_group(call.message.chat.id, media)
             else:
                 bot.send_message(call.message.chat.id, f"Название отеля: {request['name']}\n"
@@ -263,6 +264,7 @@ def withdraw_hotels(call) -> None:
                                                        f"Цена за ночь: {request['price']} "
                                                        f"долларов (1 взрослый, 2 ребенка)\n"
                                                        f"Расстояние от центра: {request['distance']} км")
+            data['hotels'] = request
             data['hotel_id'] = str(hotel_id)
             data_for_db(data=data)
             counter += 1
