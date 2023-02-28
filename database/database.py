@@ -28,8 +28,6 @@ class User(BaseModel):
     name = CharField()
     chat_id = IntegerField()
     user_id = IntegerField(unique=True)
-    command = CharField()
-    date = DateField()
 
     class Meta:
         db_table = 'user'
@@ -43,7 +41,17 @@ class HotelsSearch(BaseModel):
 
     """
 
-    pass
+    command = CharField(),
+    user = Field(),
+    city = CharField(),
+    city_id = IntegerField(),
+    date_time = DateField(),
+    date_in = DateField(),
+    date_out = DateField(),
+    hotels_amount = IntegerField(),
+    photos_amount = IntegerField(),
+    min_price = IntegerField(),
+    max_price = IntegerField()
 
 
 class Hotel(BaseModel):
@@ -117,8 +125,8 @@ def data_for_db(data: dict) -> None:
             date_out=datetime.strptime(data['departure_date'], '%d.%m.%Y'),
             hotels_amount=int(data['hotels_quantity']),
             photos_amount=int(data['hotel_photo_quantity']),
-            min_price=data.get('min_price'),
-            max_price=data.get('max_price')
+            min_price=int(data['min_price']),
+            max_price=int(data['max_price'])
         )
 
         for i_hotel in data['hotels']:
