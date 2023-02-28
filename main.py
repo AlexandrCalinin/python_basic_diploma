@@ -2,7 +2,8 @@ import handlers
 from loader import bot
 from telebot.custom_filters import StateFilter
 from utils.set_bot_commands import set_default_commands
-from database.database import *
+from database.database import create_tables
+from loguru import logger
 
 
 if __name__ == '__main__':
