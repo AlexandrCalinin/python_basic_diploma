@@ -3,7 +3,7 @@ from loguru import logger
 from datetime import datetime
 
 
-db = SqliteDatabase('database.db')
+db = SqliteDatabase('database/db.db')
 
 
 class BaseModel(Model):
