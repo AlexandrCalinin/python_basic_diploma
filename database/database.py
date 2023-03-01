@@ -1,9 +1,11 @@
+import os
+from typing import List, Optional
+
 from peewee import *
-from loguru import logger
 from datetime import datetime
 
 
-db = SqliteDatabase('database/db.db')
+db = SqliteDatabase(os.path.join('database', 'bot_data.db'))
 
 
 class BaseModel(Model):
@@ -11,7 +13,6 @@ class BaseModel(Model):
 
     class Meta:
         database: SqliteDatabase = db
-        order_by = 'id'
 
 
 class User(BaseModel):
@@ -27,9 +28,6 @@ class User(BaseModel):
     chat_id = IntegerField()
     user_id = IntegerField(unique=True)
 
-    class Meta:
-        db_table = 'user'
-
 
 class HotelsSearch(BaseModel):
     """
@@ -40,7 +38,6 @@ class HotelsSearch(BaseModel):
         user - объект класса User
         city - название города
         city_id - id города
-        date_time - дата и время поиска
         date_in - дата въезда
         date_out - дата выезда
         hotels_amount - количество отелей
@@ -49,16 +46,16 @@ class HotelsSearch(BaseModel):
         max_price - максимальная цена
     """
 
-    command = CharField(),
-    user = Field(),
-    city = CharField(),
-    city_id = IntegerField(),
-    date_time = DateField(),
-    date_in = DateField(),
-    date_out = DateField(),
-    hotels_amount = IntegerField(),
-    photos_amount = IntegerField(),
-    min_price = IntegerField(),
+    command = CharField()
+    user = ForeignKeyField(User, backref='Searches')
+    city = CharField()
+    city_id = IntegerField()
+    date_time = DateTimeField()
+    date_in = DateField()
+    date_out = DateField()
+    hotels_amount = IntegerField()
+    photos_amount = IntegerField()
+    min_price = IntegerField()
     max_price = IntegerField()
 
 
@@ -76,14 +73,11 @@ class Hotel(BaseModel):
     """
 
     hotel_id = IntegerField()
-    hotels_search = Field()
+    hotels_search = ForeignKeyField(HotelsSearch, backref='hotels')
     name = CharField()
     address = CharField()
-    price = IntegerField()
-    distance = IntegerField()
-
-    class Meta:
-        db_table = 'hotels'
+    price = FloatField()
+    distance = FloatField()
 
 
 class Photo(BaseModel):
@@ -95,11 +89,8 @@ class Photo(BaseModel):
         url - ссылки на фотографии
     """
 
-    hotel = Field()
+    photos = ForeignKeyField(Hotel, backref='photos')
     url = CharField()
-
-    class Meta:
-        db_table = 'photos'
 
 
 def data_for_db(data: dict) -> None:
@@ -121,22 +112,82 @@ def data_for_db(data: dict) -> None:
             user=user,
             city=data['city'],
             city_id=int(data['city_id']),
-            date_in=datetime.strptime(data['arrival_date'], '%d.%m.%Y'),
-            date_out=datetime.strptime(data['departure_date'], '%d.%m.%Y'),
+            date_time=datetime.strptime(str(datetime.now().replace(microsecond=0, tzinfo=None)), '%Y-%m-%d %H:%M:%S'),
+            date_in=datetime.strptime(data['arrival_date'], '%d-%m-%Y'),
+            date_out=datetime.strptime(data['departure_date'], '%d-%m-%Y'),
             hotels_amount=int(data['hotels_quantity']),
             photos_amount=int(data['hotel_photo_quantity']),
             min_price=int(data['min_price']),
             max_price=int(data['max_price'])
         )
 
-        for i_hotel in data['hotels']:
-            hotel = Hotel.create(
-                hotels_search=hotels_search,
-                name=i_hotel['name'],
-                hotel_id=int(i_hotel['hotel_id']),
-                address=i_hotel['address'],
-                distance=int(i_hotel['distance']),
-                price=int(i_hotel['price'])
-            )
-            for photo in i_hotel['photo']:
-                Photo.create(hotel=hotel, url=photo)
+        hotel = Hotel.create(
+            hotels_search=hotels_search,
+            name=data['hotels']['name'],
+            hotel_id=int(data['hotels']['id']),
+            address=data['hotels']['address'],
+            distance=int(data['hotels']['distance']),
+            price=int(data['hotels']['price'])
+        )
+        for photo in data['hotels']['photo']:
+            Photo.create(hotel=hotel, url=photo)
+
+
+def hotels_searches_from_db(user_id: int) -> List[HotelsSearch]:
+    """
+    Извлекает из базы данных историю поисков отелей
+
+    :param user_id: id пользователя
+    :return: история поисков отелей
+    """
+
+    with db.atomic():
+        query = HotelsSearch.select().join(User).where(User.user_id == user_id)
+    query: list = list(query)
+
+    return query
+
+
+def hotel_photos_from_db(hotel: Hotel) -> List[Optional[str]]:
+    """
+    Извлекает из базы данных фотографии для отеля
+
+    :param hotel: отель
+    :return: список со ссылками на фотографии
+    """
+
+    photos_list = list()
+    with db.atomic():
+        if hotel.hotels_search.photos_amount:
+            photos_list = [
+                photo.url
+                for photo in
+                Photo.select().where(Photo.hotel == hotel)
+            ]
+
+    return photos_list
+
+
+def hotels_data_from_db(hotels_search: HotelsSearch) -> list:
+    """
+    Извлекает из базы данных данные по отелям для поиска отелей из истории поиска
+
+    :param hotels_search: поиск отелей
+    :return: список с данными по отелям
+    """
+
+    with db.atomic():
+        query = Hotel.select().where(Hotel.hotels_search == hotels_search)
+
+    hotels = list()
+    for hotel in query:
+        hotels.append({
+            'hotel': hotel.name,
+            'hotel_id': hotel.hotel_id,
+            'address': hotel.address,
+            'distance': hotel.distance,
+            'price': hotel.price,
+            'photos_list': hotel_photos_from_db(hotel)
+        })
+
+    return hotels

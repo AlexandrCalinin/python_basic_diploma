@@ -227,10 +227,8 @@ def withdraw_hotels(call) -> None:
     logger.info(f'Пользователь {call.from_user.id} перешел в функцию {withdraw_hotels.__name__}')
     with bot.retrieve_data(call.from_user.id, call.message.chat.id) as data:
         city_id = data['city_id']
-        arrival_date = data['arrival_date']
-        check_in_date = arrival_date.split('-')
-        departure_date = data['departure_date']
-        check_out_date = departure_date.split('-')
+        arrival_date = data['arrival_date'].split('-')
+        departure_date = data['departure_date'].split('-')
         if data['command'] == 'lowprice':
             data['min_price'] = 50
             data['max_price'] = 300
@@ -238,12 +236,12 @@ def withdraw_hotels(call) -> None:
             data['min_price'] = 300
             data['max_price'] = 5000
         hotel_dict, price, distance = requests.get_hotel_name_list(city_id=str(city_id),
-                                                                   check_in_day=int(check_in_date[0]),
-                                                                   check_in_month=int(check_in_date[1]),
-                                                                   check_in_year=int(check_in_date[2]),
-                                                                   check_out_day=int(check_out_date[0]),
-                                                                   check_out_month=int(check_out_date[1]),
-                                                                   check_out_year=int(check_out_date[2]),
+                                                                   check_in_day=int(arrival_date[0]),
+                                                                   check_in_month=int(arrival_date[1]),
+                                                                   check_in_year=int(arrival_date[2]),
+                                                                   check_out_day=int(departure_date[0]),
+                                                                   check_out_month=int(departure_date[1]),
+                                                                   check_out_year=int(departure_date[2]),
                                                                    hotel_quantity=int(data['hotels_quantity']),
                                                                    sort=data['sort'],
                                                                    min_price=data['min_price'],
@@ -268,6 +266,5 @@ def withdraw_hotels(call) -> None:
                                                        f"долларов (1 взрослый, 2 ребенка)\n"
                                                        f"Расстояние от центра: {request['distance']} км")
             data['hotels'] = request
-            data['hotel_id'] = str(hotel_id)
             data_for_db(data=data)
             counter += 1
