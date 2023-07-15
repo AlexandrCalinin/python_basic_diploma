@@ -61,7 +61,6 @@ def get_city(message: Message) -> None:
             raise TypeError
     except TypeError:
         bot.send_message(message.chat.id, 'Название города должно содержать только буквы! Попробуйте еще раз.')
-        get_city(message=message)
 
 
 @logger.catch
@@ -120,7 +119,6 @@ def to_send_photos(message: Message) -> None:
             raise TypeError
     except TypeError or ValueError:
             bot.send_message(message.chat.id, 'Ошибка! Одно из условий нарушено. Попробуйте еще раз!')
-            to_send_photos(message=message)
 
 
 @logger.catch
@@ -268,3 +266,4 @@ def withdraw_hotels(call) -> None:
             data['hotels'] = request
             data_for_db(data=data)
             counter += 1
+
